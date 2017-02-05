@@ -1,3 +1,4 @@
+import java.util.Random;
 public class GA{
     /*
     * ------------------------------------------
@@ -433,6 +434,17 @@ public class GA{
             }
             System.out.println("==================");
         }
+    }
+
+    /*
+    * ------------------------------------------
+    * -----mutation-----------------------------
+    * --------------function--------------------
+    * -----------------------method-------------
+    */
+    public static void mute(int[] chromosome){
+        Random random =new Random();
+        chromosome[random.nextInt()%20] = (random.nextInt() % 13) - 1; // => [-1 ... 11]
     }
 	public static void main(String[] args){
 		int[] map = new int[54];
