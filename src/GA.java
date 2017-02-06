@@ -1,5 +1,213 @@
 import java.util.Random;
+import java.util.Comparator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Stack;
+
 public class GA{
+    
+    public static void main(String[] args){
+        int[] map = new int[54];
+        for(int i=0; i<54; i++)
+            map[i] = i/9;
+
+        int[] chromosome = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+                            -1, -1, -1, -1,  0,  9,  5,  4,  0, -1};
+
+    }
+
+    /*
+    * =============================
+    * === complete ================
+    * =========== generation ======
+    * ================== progress =
+    * =============================
+    */
+    public static void completeGeneration(ArrayList<Node> generationList, int[] startPosition){
+        kill(generationList, 0.5, 0.05, startPosition);
+
+        for(Node n : generationList){
+            mute(n.chromosome);
+        }
+    }
+    /*
+    * =============================
+    * === calculate ===============
+    * ======== if = any = node ====
+    * ============ if not = good ==
+    * ====== for = genertions =====
+    */
+    private static int calculateHoverBackScore(int[] chromosome){
+        ArrayList<Integer> moveList = new ArrayList<Integer>();
+        Stack<Integer> lastSameGroupMoves = new Stack<Integer>();
+
+        for(int i=0; i<chromosome.length; i++)
+            if(chromosome[i] != -1){
+                moveList.add(chromosome[i]);
+            }
+        System.out.println();
+
+        int groupId = -1;
+
+        int[] groupCount = new int[4];
+        int lastMove = -1;
+        boolean hasFaltch = false;
+        int result = 0;
+        for(int j=moveList.size(); j>=0; j--){
+            
+            while(!lastSameGroupMoves.isEmpty())
+                lastSameGroupMoves.pop();
+
+            for(int i=0; i<j; i++){
+                int move = moveList.get(i);
+                if(groupId == -1){
+                    groupId = move/4;
+                    lastSameGroupMoves.push(move%4);
+                }else{
+                    if(groupId != move/4){
+                        groupId = move/4;
+                        
+                        while(!lastSameGroupMoves.isEmpty())
+                            lastSameGroupMoves.pop();
+
+                        lastSameGroupMoves.push(move%4);
+                    }else{
+                        lastSameGroupMoves.push(move%4);
+                    }
+                }
+            }
+            if(!lastSameGroupMoves.isEmpty()){
+                if(hasFaltch(lastSameGroupMoves))
+                    result -= 3;
+            }
+        }
+        return result;
+    }
+    private static boolean hasFaltch(Stack<Integer> moves){
+        int n0 = moves.pop();
+        if(moves.isEmpty())
+            return false;
+        int n1 = moves.pop();
+
+        switch(n0){
+            case 0:
+                switch(n1){
+                    case 0:
+                        while(!moves.isEmpty())
+                            if(moves.pop() == 0)
+                                return true;
+                        return false;
+                    case 1:
+                        return true;
+                    case 2:
+                    case 3:
+                        return false;
+                }
+                break;
+            case 1:
+                return true;
+            case 2:
+                switch(n1){
+                    case 0:
+                        return false;
+                    case 1:
+                        return false;
+                    case 2:
+                        while(!moves.isEmpty())
+                            if(moves.pop() == 2)
+                                return true;
+                        return false;
+                    case 3:
+                        return true;
+                }
+                break;
+            case 3:
+                switch(n1){
+                    case 0:
+                        return false;
+                    case 1:
+                        return false;
+                    case 2:
+                        return true;
+                    case 3:
+                        return true;
+                }
+                break;
+        }
+        return false;
+    }
+    /*
+    * ------------------------------------------
+    * -----mutation-----------------------------
+    * --------------function--------------------
+    * -----------------------method-------------
+    */
+    public static void mute(int[] chromosome){
+        Random random =new Random();
+        chromosome[random.nextInt()%20] = (random.nextInt() % 13) - 1; // => [-1 ... 11]
+    }
+	
+
+    public static void printMap(int[] map){
+        String[] faces = {"DOWN", "UP", "FRONT", "BACK","LEFT", "RIGHT"};
+        for(int i=0; i<6; i++){
+            System.out.println(faces[i]);
+            for(int j=0; j<3; j++){
+                for(int k=0; k<3; k++)
+                    System.out.print(map[i*9 + j*3 + k] + "\t");
+                System.out.println();
+            }
+            System.out.println("==================");
+        }
+    }
+
+    public static void kill(ArrayList<Node> nodeGroup, float killPercentage, float randomSavingPercentage, int[] startPosition){
+        int killNumber = (int) (nodeGroup.size() * killPercentage);
+        int saveNumber = (int) (nodeGroup.size() * (1-killPercentage));
+        int randomSaveNumber = (int) (nodeGroup.size() * randomSavingPercentage);
+        
+        boolean[] kills = new boolean[nodeGroup.size()];
+
+        Collections.sort(nodeGroup, new Comparator<Node>() {
+                public int compare(Node obj1,Node obj2){
+                    int fitness1 = fitness(startPosition ,obj1.chromosome);
+                    int fitness2 = fitness(startPosition ,obj2.chromosome);
+
+                    if(fitness1 < fitness2)
+                        return -1;
+                    else if(fitness1 > fitness2)
+                        return 1;
+                    else
+                        return 0;
+                }
+            });
+
+        for(int i=0; i<killNumber; i++)
+            kills[i] = true;
+        for(int i=killNumber; i<kills.length; i++)
+            kills[i] = false;
+
+        Random random = new Random();
+        for(int i=0; i<randomSaveNumber; i++){
+            int saveIndex = random.nextInt(killNumber);
+            while(!kills[saveIndex])
+                saveIndex = random.nextInt(killNumber);
+
+            int removeIndex = random.nextInt(saveNumber);
+            while(kills[removeIndex])
+                removeIndex = random.nextInt(saveNumber);
+
+            kills[saveIndex] = false;
+            kills[removeIndex] = true;
+        }
+
+        for(int i=kills.length-1; i>=0; i--)
+            if(kills[i])
+                nodeGroup.remove(i);
+    }
+    public static void crossOver(ArrayList<Node> nodeGroup /* sorted */){
+        return;
+    }
     /*
     * ------------------------------------------
     * ----fitness function----------------------
@@ -423,44 +631,16 @@ public class GA{
         }
     }
 
-    public static void printMap(int[] map){
-        String[] faces = {"DOWN", "UP", "FRONT", "BACK","LEFT", "RIGHT"};
-        for(int i=0; i<6; i++){
-            System.out.println(faces[i]);
-            for(int j=0; j<3; j++){
-                for(int k=0; k<3; k++)
-                    System.out.print(map[i*9 + j*3 + k] + "\t");
-                System.out.println();
-            }
-            System.out.println("==================");
+    
+    public static int fitness(int[] baseMap, int[] chromosome){
+        for(int i=0; i<chromosome.length; i++)
+            roll(baseMap, chromosome[i]);
+        int result = 0;
+        for(int i=0; i<baseMap.length; i++){
+            if(baseMap[i] == i/9)
+                result++;
         }
+        result += calculateHoverBackScore(chromosome);
+        return result;
     }
-
-    /*
-    * ------------------------------------------
-    * -----mutation-----------------------------
-    * --------------function--------------------
-    * -----------------------method-------------
-    */
-    public static void mute(int[] chromosome){
-        Random random =new Random();
-        chromosome[random.nextInt()%20] = (random.nextInt() % 13) - 1; // => [-1 ... 11]
-    }
-	public static void main(String[] args){
-		int[] map = new int[54];
-        for(int i=0; i<54; i++)
-            map[i] = i/9;
-        System.out.println("========================");
-        roll(map, 10);
-        roll(map, 1);
-        roll(map, 5);
-        roll(map, 6);
-        roll(map, 9);
-        roll(map, 8);
-        roll(map, 7);
-        roll(map, 4);
-        roll(map, 0);
-        roll(map, 11);
-        printMap(map);
-	}
 }
