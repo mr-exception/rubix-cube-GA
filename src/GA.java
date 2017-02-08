@@ -7,52 +7,40 @@ import java.util.Stack;
 public class GA{
     
     public static void main(String[] args){
+        test(0, 20000, 10000, 2500, 25);
+    }
+    public static int test(int tn, int generationSize, int generationKillRate, int saveRate, int chromosomeLength){
         Random random = new Random();
         int[] map = new int[54];
         for(int i=0; i<54; i++)
             map[i] = i/9;
 
-        for(int i=0; i<40; i++)
-            roll(map, random.nextInt(12));
-
-        int generationSize = 100000;
-        int generationKillRate = 50000;
+        //for(int i=0; i<40; i++)
+        //  roll(map, random.nextInt(12));
         ArrayList<Node> firstGeneration = new ArrayList<Node>();
-        createFirstGeneration(firstGeneration, map, generationSize, 25);
+        createFirstGeneration(firstGeneration, map, generationSize, chromosomeLength);
 
         
         //for(Node n : firstGeneration)
         //    System.out.println(n);
         int i = 1;
-        System.out.print("generation " + i + ": node count = " + firstGeneration.size());
+        System.out.print("\rtest " + tn + " generation " + i + ": node count = " + firstGeneration.size());
         
         while(true){
             maxFitnessInCurrentGeneration = Integer.MIN_VALUE;
-            completeGeneration(firstGeneration, map, generationKillRate, 1000);
+            completeGeneration(firstGeneration, map, generationKillRate, saveRate);
             if(checkIfWon(firstGeneration, map)){
                 break;
             }
             //System.out.println("===================");
-            System.out.print("\rgeneration " + (i) + " : node count = " + firstGeneration.size() + " ft: " + maxFitnessInCurrentGeneration);
+            System.out.print("\rtest " + tn + " generation " + (i) + " : node count = " + firstGeneration.size() + " ft: " + maxFitnessInCurrentGeneration);
             //for(Node n : firstGeneration)
             //    System.out.println(n);
             i++;
         }
+        //System.out.println("\nreached goal after " + i + " generations");
+        return i;
     }
-
-    /*
-    * =============================
-    * == when = found = answer ====
-    * =============================
-    */
-    private static void foundAnswer(int[] chromosome, int[] baseMap){
-        System.out.println("found answer:");
-        for(int i=0; i<chromosome.length; i++)
-            if(chromosome[i] != -1)
-                System.out.print(chromosome[i] + " ");
-        System.out.println();
-    }
-
     /*
     * =============================
     * === complete ================
@@ -137,59 +125,6 @@ public class GA{
         }
         return result;
     }
-    private static boolean hasFaltch(Stack<Integer> moves){
-        int n0 = moves.pop();
-        if(moves.isEmpty())
-            return false;
-        int n1 = moves.pop();
-
-        switch(n0){
-            case 0:
-                switch(n1){
-                    case 0:
-                        while(!moves.isEmpty())
-                            if(moves.pop() == 0)
-                                return true;
-                        return false;
-                    case 1:
-                        return true;
-                    case 2:
-                    case 3:
-                        return false;
-                }
-                break;
-            case 1:
-                return true;
-            case 2:
-                switch(n1){
-                    case 0:
-                        return false;
-                    case 1:
-                        return false;
-                    case 2:
-                        while(!moves.isEmpty())
-                            if(moves.pop() == 2)
-                                return true;
-                        return false;
-                    case 3:
-                        return true;
-                }
-                break;
-            case 3:
-                switch(n1){
-                    case 0:
-                        return false;
-                    case 1:
-                        return false;
-                    case 2:
-                        return true;
-                    case 3:
-                        return true;
-                }
-                break;
-        }
-        return false;
-    }
     /*
     * ------------------------------------------
     * -----mutation-----------------------------
@@ -260,7 +195,7 @@ public class GA{
         for(int i=kills.length-1; i>=0; i--)
             if(kills[i]){
                 nodeGroup.remove(i);
-                //System.out.println("killed one");
+                //System.out.print("\rkilled " + i);
             }
         //System.out.println("count after killing : " + nodeGroup.size());
     }
@@ -307,6 +242,80 @@ public class GA{
         }
 
         return pair;
+    }
+
+    private static int maxFitnessInCurrentGeneration = Integer.MIN_VALUE;
+    private static int maxFitnessTotal = Integer.MIN_VALUE;
+    public static int fitness(int[] baseMap, int[] chromosome){
+
+        int[] map = new int[baseMap.length];
+        for(int i=0; i<baseMap.length; i++)
+            map[i] = baseMap[i];
+
+        for(int i=0; i<chromosome.length; i++)
+            roll(map, chromosome[i]);
+        int result = 0;
+        for(int i=0; i<map.length; i++){
+            if(map[i] == i/9)
+                result++;
+        }
+        
+        result += calculateHoverBackScore(chromosome);
+
+        return result;
+    }
+    private static boolean hasFaltch(Stack<Integer> moves){
+        int n0 = moves.pop();
+        if(moves.isEmpty())
+            return false;
+        int n1 = moves.pop();
+
+        switch(n0){
+            case 0:
+                switch(n1){
+                    case 0:
+                        while(!moves.isEmpty())
+                            if(moves.pop() == 0)
+                                return true;
+                        return false;
+                    case 1:
+                        return true;
+                    case 2:
+                    case 3:
+                        return false;
+                }
+                break;
+            case 1:
+                return true;
+            case 2:
+                switch(n1){
+                    case 0:
+                        return false;
+                    case 1:
+                        return false;
+                    case 2:
+                        while(!moves.isEmpty())
+                            if(moves.pop() == 2)
+                                return true;
+                        return false;
+                    case 3:
+                        return true;
+                }
+                break;
+            case 3:
+                switch(n1){
+                    case 0:
+                        return false;
+                    case 1:
+                        return false;
+                    case 2:
+                        return true;
+                    case 3:
+                        return true;
+                }
+                break;
+        }
+        return false;
     }
     /*
     * ------------------------------------------
@@ -731,28 +740,6 @@ public class GA{
         }
     }
 
-    private static int maxFitnessInCurrentGeneration = Integer.MIN_VALUE;
-    private static int maxFitnessTotal = Integer.MIN_VALUE;
-    public static int fitness(int[] baseMap, int[] chromosome){
-
-        int[] map = new int[baseMap.length];
-        for(int i=0; i<baseMap.length; i++)
-            map[i] = baseMap[i];
-
-        for(int i=0; i<chromosome.length; i++)
-            roll(map, chromosome[i]);
-        int result = 0;
-        for(int i=0; i<map.length; i++){
-            if(map[i] == i/9)
-                result++;
-        }
-        if(result == baseMap.length)
-            foundAnswer(chromosome, baseMap);
-        
-        result += calculateHoverBackScore(chromosome);
-
-        return result;
-    }
     private static boolean checkIfWon(ArrayList<Node> generation, int[] baseMap){
         for(int i=0; i<generation.size(); i++){
 
@@ -778,5 +765,17 @@ public class GA{
             if(map[i] != i/9)
                 return false;
         return true;
+    }
+    /*
+    * =============================
+    * == when = found = answer ====
+    * =============================
+    */
+    private static void foundAnswer(int[] chromosome, int[] baseMap){
+        System.out.println("found answer:");
+        for(int i=0; i<chromosome.length; i++)
+            if(chromosome[i] != -1)
+                System.out.print(chromosome[i] + " ");
+        System.out.println();
     }
 }
