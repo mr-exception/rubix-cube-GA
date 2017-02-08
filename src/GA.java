@@ -7,13 +7,50 @@ import java.util.Stack;
 public class GA{
     
     public static void main(String[] args){
+        Random random = new Random();
         int[] map = new int[54];
         for(int i=0; i<54; i++)
             map[i] = i/9;
 
-        int[] chromosome = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-                            -1, -1, -1, -1,  0,  9,  5,  4,  0, -1};
+        for(int i=0; i<40; i++)
+            roll(map, random.nextInt(12));
 
+        int generationSize = 100000;
+        int generationKillRate = 50000;
+        ArrayList<Node> firstGeneration = new ArrayList<Node>();
+        createFirstGeneration(firstGeneration, map, generationSize, 25);
+
+        
+        //for(Node n : firstGeneration)
+        //    System.out.println(n);
+        int i = 1;
+        System.out.print("generation " + i + ": node count = " + firstGeneration.size());
+        
+        while(true){
+            maxFitnessInCurrentGeneration = Integer.MIN_VALUE;
+            completeGeneration(firstGeneration, map, generationKillRate, 1000);
+            if(checkIfWon(firstGeneration, map)){
+                break;
+            }
+            //System.out.println("===================");
+            System.out.print("\rgeneration " + (i) + " : node count = " + firstGeneration.size() + " ft: " + maxFitnessInCurrentGeneration);
+            //for(Node n : firstGeneration)
+            //    System.out.println(n);
+            i++;
+        }
+    }
+
+    /*
+    * =============================
+    * == when = found = answer ====
+    * =============================
+    */
+    private static void foundAnswer(int[] chromosome, int[] baseMap){
+        System.out.println("found answer:");
+        for(int i=0; i<chromosome.length; i++)
+            if(chromosome[i] != -1)
+                System.out.print(chromosome[i] + " ");
+        System.out.println();
     }
 
     /*
@@ -23,11 +60,29 @@ public class GA{
     * ================== progress =
     * =============================
     */
-    public static void completeGeneration(ArrayList<Node> generationList, int[] startPosition){
-        kill(generationList, 0.5, 0.05, startPosition);
+    public static void completeGeneration(ArrayList<Node> generationList, int[] startPosition, int kill, int rndSave){
+        crossOver(generationList, kill/2, startPosition);
 
-        for(Node n : generationList){
-            mute(n.chromosome);
+        kill(generationList, kill, rndSave, startPosition);
+
+        for(int i=0; i<generationList.size()/2; i++){
+            mute(generationList.get(i), startPosition);
+        }
+
+        sort(generationList);
+
+        //System.out.println("max Fitness in current generation: " + maxFitnessInCurrentGeneration);
+        //System.out.println("max Fitness total: " + maxFitnessTotal);
+    }
+    /* ============================ */
+    public static void createFirstGeneration(ArrayList<Node> emptyGeneration,int[] baseMap, int size, int chromosomeLength){
+        Random random = new Random();
+        for(int i=0; i<size; i++){
+            int[] chromosome = new int[chromosomeLength];
+            for(int j=0; j<chromosomeLength; j++)
+                chromosome[j] = random.nextInt(13) -1;
+
+            emptyGeneration.add(new Node(chromosome, baseMap));
         }
     }
     /*
@@ -45,7 +100,6 @@ public class GA{
             if(chromosome[i] != -1){
                 moveList.add(chromosome[i]);
             }
-        System.out.println();
 
         int groupId = -1;
 
@@ -142,9 +196,10 @@ public class GA{
     * --------------function--------------------
     * -----------------------method-------------
     */
-    public static void mute(int[] chromosome){
+    public static void mute(Node n, int[] baseMap){
         Random random =new Random();
-        chromosome[random.nextInt()%20] = (random.nextInt() % 13) - 1; // => [-1 ... 11]
+        n.chromosome[random.nextInt(n.chromosome.length)] = (random.nextInt(13)) - 1; // => [-1 ... 11]
+        n.fitness = fitness(baseMap, n.chromosome);
     }
 	
 
@@ -161,27 +216,26 @@ public class GA{
         }
     }
 
-    public static void kill(ArrayList<Node> nodeGroup, float killPercentage, float randomSavingPercentage, int[] startPosition){
-        int killNumber = (int) (nodeGroup.size() * killPercentage);
-        int saveNumber = (int) (nodeGroup.size() * (1-killPercentage));
-        int randomSaveNumber = (int) (nodeGroup.size() * randomSavingPercentage);
-        
-        boolean[] kills = new boolean[nodeGroup.size()];
-
-        Collections.sort(nodeGroup, new Comparator<Node>() {
+    private static void sort(ArrayList<Node> generation){
+        Collections.sort(generation, new Comparator<Node>() {
                 public int compare(Node obj1,Node obj2){
-                    int fitness1 = fitness(startPosition ,obj1.chromosome);
-                    int fitness2 = fitness(startPosition ,obj2.chromosome);
 
-                    if(fitness1 < fitness2)
+                    if(obj1.fitness < obj2.fitness)
                         return -1;
-                    else if(fitness1 > fitness2)
+                    else if(obj1.fitness > obj2.fitness)
                         return 1;
                     else
                         return 0;
+
                 }
             });
+    }
+    public static void kill(ArrayList<Node> nodeGroup, int killNumber, int randomSaveNumber, int[] startPosition){
+        int saveNumber = nodeGroup.size() - killNumber;
+        boolean[] kills = new boolean[nodeGroup.size()];
 
+        
+        sort(nodeGroup);
         for(int i=0; i<killNumber; i++)
             kills[i] = true;
         for(int i=killNumber; i<kills.length; i++)
@@ -190,23 +244,69 @@ public class GA{
         Random random = new Random();
         for(int i=0; i<randomSaveNumber; i++){
             int saveIndex = random.nextInt(killNumber);
+            
             while(!kills[saveIndex])
                 saveIndex = random.nextInt(killNumber);
 
             int removeIndex = random.nextInt(saveNumber);
             while(kills[removeIndex])
-                removeIndex = random.nextInt(saveNumber);
-
+                removeIndex = random.nextInt(saveNumber) + killNumber;
+            
             kills[saveIndex] = false;
             kills[removeIndex] = true;
+            
         }
 
         for(int i=kills.length-1; i>=0; i--)
-            if(kills[i])
+            if(kills[i]){
                 nodeGroup.remove(i);
+                //System.out.println("killed one");
+            }
+        //System.out.println("count after killing : " + nodeGroup.size());
     }
-    public static void crossOver(ArrayList<Node> nodeGroup /* sorted */){
-        return;
+    public static void crossOver(ArrayList<Node> nodeGroup /* sorted */, int size, int[] baseMap){
+        Random random = new Random();
+
+        for(int i=0; i<size; i++){
+
+            Node[] pair0 = getPair(nodeGroup);
+            Node[] pair1 = getPair(nodeGroup);
+
+            int singlePointer = random.nextInt(pair0[0].chromosome.length);
+            produce(pair0[0], pair1[0], singlePointer, nodeGroup, baseMap);
+            //produce(pair0[1], pair1[1], singlePointer, nodeGroup, baseMap);
+        }
+    }
+    private static void produce(Node p0, Node p1, int pointer, ArrayList<Node> nodeGroup, int[] baseMap){
+        int[] chromosome0 = new int[p0.chromosome.length];
+        int[] chromosome1 = new int[p0.chromosome.length];
+
+        for(int i=0; i<pointer; i++){
+            chromosome0[i] = p0.chromosome[i];
+            chromosome1[i] = p1.chromosome[i];
+        }
+        for(int i=pointer; i<chromosome0.length; i++){
+            chromosome0[i] = p1.chromosome[i];
+            chromosome1[i] = p0.chromosome[i];
+        }
+
+        nodeGroup.add(new Node(chromosome0, baseMap));
+        nodeGroup.add(new Node(chromosome1, baseMap));
+    }
+    private static Node[] getPair(ArrayList<Node> nodeGroup){
+        Random random = new Random();
+        Node[] pair = new Node[2];
+        pair[0] = nodeGroup.get(random.nextInt(nodeGroup.size()));
+        while(pair[1] == null || pair[1].fitness == pair[0].fitness)
+            pair[1] = nodeGroup.get(random.nextInt(nodeGroup.size()));
+
+        if(pair[0].fitness < pair[1].fitness){
+            Node t = pair[0];
+            pair[0] = pair[1];
+            pair[1] = t;
+        }
+
+        return pair;
     }
     /*
     * ------------------------------------------
@@ -631,16 +731,52 @@ public class GA{
         }
     }
 
-    
+    private static int maxFitnessInCurrentGeneration = Integer.MIN_VALUE;
+    private static int maxFitnessTotal = Integer.MIN_VALUE;
     public static int fitness(int[] baseMap, int[] chromosome){
+
+        int[] map = new int[baseMap.length];
+        for(int i=0; i<baseMap.length; i++)
+            map[i] = baseMap[i];
+
         for(int i=0; i<chromosome.length; i++)
-            roll(baseMap, chromosome[i]);
+            roll(map, chromosome[i]);
         int result = 0;
-        for(int i=0; i<baseMap.length; i++){
-            if(baseMap[i] == i/9)
+        for(int i=0; i<map.length; i++){
+            if(map[i] == i/9)
                 result++;
         }
+        if(result == baseMap.length)
+            foundAnswer(chromosome, baseMap);
+        
         result += calculateHoverBackScore(chromosome);
+
         return result;
+    }
+    private static boolean checkIfWon(ArrayList<Node> generation, int[] baseMap){
+        for(int i=0; i<generation.size(); i++){
+
+            if(maxFitnessInCurrentGeneration < generation.get(i).fitness)
+                maxFitnessInCurrentGeneration = generation.get(i).fitness;
+            if(maxFitnessTotal < generation.get(i).fitness)
+                maxFitnessTotal = generation.get(i).fitness;
+
+            if(checkIfComplete(baseMap, generation.get(i).chromosome))
+                return true;
+        }
+        return false;
+    }
+    private static boolean checkIfComplete(int[] baseMap, int[] chromosome){
+        int[] map = new int[baseMap.length];
+        for(int i=0; i<map.length; i++)
+            map[i] = baseMap[i];
+
+        for(int i=0; i<chromosome.length; i++)
+            roll(map, chromosome[i]);
+
+        for(int i=0; i<map.length; i++)
+            if(map[i] != i/9)
+                return false;
+        return true;
     }
 }
