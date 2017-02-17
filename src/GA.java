@@ -6,15 +6,13 @@ import java.util.Stack;
 
 public class GA{
     
-    public static void main(String[] args){
-        test(0, 20000, 10000, 2500, 25);
-    }
     public static int test(int tn, int generationSize, int generationKillRate, int saveRate, int chromosomeLength){
         Random random = new Random();
         int[] map = new int[54];
         for(int i=0; i<54; i++)
             map[i] = i/9;
 
+        long t = System.currentTimeMillis();
         //for(int i=0; i<40; i++)
         //  roll(map, random.nextInt(12));
         ArrayList<Node> firstGeneration = new ArrayList<Node>();
@@ -26,7 +24,7 @@ public class GA{
         int i = 1;
         System.out.print("\rtest " + tn + " generation " + i + ": node count = " + firstGeneration.size());
         
-        while(true){
+        while(System.currentTimeMillis() - t < 30 * 1000){
             maxFitnessInCurrentGeneration = Integer.MIN_VALUE;
             completeGeneration(firstGeneration, map, generationKillRate, saveRate);
             if(checkIfWon(firstGeneration, map)){

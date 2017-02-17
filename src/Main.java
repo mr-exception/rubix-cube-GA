@@ -1,30 +1,51 @@
+import java.io.FileInputStream;
+import java.util.Scanner;
+import java.lang.Exception;
+import java.io.PrintStream;
+import java.io.File;
+
 public class Main{
-    private static int[] generationSize = {
-        1000,   1000,   1000,   1000,   2000,   2000,   2000,   2000,   5000,   5000,   5000,   5000,   10000,   10000,   10000,   10000
-    };
-    private static int[] killRate = {
-        100,    100,    200,    200,    100,    100,    200,    200,    100,    100,    200,    200,    100,    100,    200,    200
-    };
-    private static int[] randomSaveRate = {
-        10,     20,     10,     20,     10,     20,     10,     20,     10,     20,     10,     20,     10,     20,     20,     10
-    };
-    private static int testSize = 60;
+    private static int testSize = 100;
 	public static void main(String[] args){
+        try{
+            Scanner input = new Scanner(new FileInputStream(args[0]));
+            PrintStream stream = new PrintStream(new File("result.txt"));
 
-        for(int i=0; i<generationSize.length; i++){
-            float sum = 0;
-    		System.out.println("running " + testSize + " test on GA");
-            System.out.println("generation size:  " + generationSize[i]);
-            System.out.println("kill rate:        " + killRate[i]);
-            System.out.println("random save rate: " + randomSaveRate[i]);
-            for(int j=0; j<testSize; j++){
-                //System.out.println("test " + j);
-                sum += GA.test(j, generationSize[i], killRate[i], randomSaveRate[i], 20);
-                System.out.print("\r                                                                               ");
 
+            while(input.hasNextLine()){
+                String line = input.nextLine();
+                String[] parts = line.split(",");
+
+                int generationSize = Integer.valueOf(parts[0]);
+                int killRate = Integer.valueOf(parts[1]);
+                int randomSaveRate = Integer.valueOf(parts[2]);
+                int chromosomeSize = Integer.valueOf(parts[3]);
+
+                float sum = 0;
+                System.out.println("running " + testSize + " test on GA");
+                System.out.println("generation size:  " + generationSize);
+                System.out.println("kill rate:        " + killRate);
+                System.out.println("random save rate: " + randomSaveRate);
+                System.out.println("chromosome size:  " + chromosomeSize);
+                for(int j=0; j<testSize; j++){
+                    sum += GA.test(j, generationSize, killRate, randomSaveRate, chromosomeSize);
+                    System.out.print("\r                                                                               ");
+
+                }
+                System.out.println("\navg generations: " + (float)(sum/(float)testSize));
+                System.out.println("===================================================");
+
+                
+                stream.println("running " + testSize + " test on GA");
+                stream.println("generation size:  " + generationSize);
+                stream.println("kill rate:        " + killRate);
+                stream.println("random save rate: " + randomSaveRate);
+                stream.println("chromosome size:  " + chromosomeSize);
+                stream.println("test case: answer generation count average = " + (float)(sum/(float)testSize));
+                stream.println("===========================================================");
             }
-            System.out.println("\navg generations: " + (float)(sum/(float)testSize));
-            System.out.println("===================================================");
+        }catch(Exception e){
+            e.printStackTrace();    
         }
 	}
 }
