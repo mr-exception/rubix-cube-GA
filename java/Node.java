@@ -2,8 +2,8 @@ public class Node{
     public int[] chromosome = new int[20];
     public int fitness = 0;
     
-    public Node(int[] chromosome, int[] startPosition){
-        this.fitness = GA.fitness(startPosition ,chromosome);
+    public Node(int[] chromosome, int[] startPosition, boolean useRB){
+        this.fitness = GA.fitness(startPosition ,chromosome, useRB);
         this.chromosome = chromosome;
     }
 

@@ -6,7 +6,7 @@ import java.util.Stack;
 
 public class GA{
     
-    public static int test(int tn, int generationSize, int generationKillRate, int saveRate, int chromosomeLength){
+    public static int test(int tn, int generationSize, int generationKillRate, int saveRate, int chromosomeLength, boolean useRB){
         Random random = new Random();
         int[] map = new int[54];
         for(int i=0; i<54; i++)
@@ -16,7 +16,7 @@ public class GA{
         //for(int i=0; i<40; i++)
         //  roll(map, random.nextInt(12));
         ArrayList<Node> firstGeneration = new ArrayList<Node>();
-        createFirstGeneration(firstGeneration, map, generationSize, chromosomeLength);
+        createFirstGeneration(firstGeneration, map, generationSize, chromosomeLength, useRB);
 
         
         //for(Node n : firstGeneration)
@@ -26,7 +26,7 @@ public class GA{
         
         while(System.currentTimeMillis() - t < 30 * 1000){
             maxFitnessInCurrentGeneration = Integer.MIN_VALUE;
-            completeGeneration(firstGeneration, map, generationKillRate, saveRate);
+            completeGeneration(firstGeneration, map, generationKillRate, saveRate, useRB);
             if(checkIfWon(firstGeneration, map)){
                 break;
             }
@@ -46,13 +46,13 @@ public class GA{
     * ================== progress =
     * =============================
     */
-    public static void completeGeneration(ArrayList<Node> generationList, int[] startPosition, int kill, int rndSave){
-        crossOver(generationList, kill/2, startPosition);
+    public static void completeGeneration(ArrayList<Node> generationList, int[] startPosition, int kill, int rndSave, boolean useRB){
+        crossOver(generationList, kill/2, startPosition, useRB);
 
         kill(generationList, kill, rndSave, startPosition);
 
         for(int i=0; i<generationList.size()/2; i++){
-            mute(generationList.get(i), startPosition);
+            mute(generationList.get(i), startPosition, useRB);
         }
 
         sort(generationList);
@@ -61,14 +61,14 @@ public class GA{
         //System.out.println("max Fitness total: " + maxFitnessTotal);
     }
     /* ============================ */
-    public static void createFirstGeneration(ArrayList<Node> emptyGeneration,int[] baseMap, int size, int chromosomeLength){
+    public static void createFirstGeneration(ArrayList<Node> emptyGeneration,int[] baseMap, int size, int chromosomeLength, boolean useRB){
         Random random = new Random();
         for(int i=0; i<size; i++){
             int[] chromosome = new int[chromosomeLength];
             for(int j=0; j<chromosomeLength; j++)
                 chromosome[j] = random.nextInt(13) -1;
 
-            emptyGeneration.add(new Node(chromosome, baseMap));
+            emptyGeneration.add(new Node(chromosome, baseMap, useRB));
         }
     }
     /*
@@ -118,7 +118,7 @@ public class GA{
             }
             if(!lastSameGroupMoves.isEmpty()){
                 if(hasFaltch(lastSameGroupMoves))
-                    result -= 3;
+                    result += 1;
             }
         }
         return result;
@@ -129,10 +129,10 @@ public class GA{
     * --------------function--------------------
     * -----------------------method-------------
     */
-    public static void mute(Node n, int[] baseMap){
+    public static void mute(Node n, int[] baseMap, boolean useRB){
         Random random =new Random();
         n.chromosome[random.nextInt(n.chromosome.length)] = (random.nextInt(13)) - 1; // => [-1 ... 11]
-        n.fitness = fitness(baseMap, n.chromosome);
+        n.fitness = fitness(baseMap, n.chromosome, useRB);
     }
 	
 
@@ -197,7 +197,7 @@ public class GA{
             }
         //System.out.println("count after killing : " + nodeGroup.size());
     }
-    public static void crossOver(ArrayList<Node> nodeGroup /* sorted */, int size, int[] baseMap){
+    public static void crossOver(ArrayList<Node> nodeGroup /* sorted */, int size, int[] baseMap, boolean useRB){
         Random random = new Random();
 
         for(int i=0; i<size; i++){
@@ -206,11 +206,11 @@ public class GA{
             Node[] pair1 = getPair(nodeGroup);
 
             int singlePointer = random.nextInt(pair0[0].chromosome.length);
-            produce(pair0[0], pair1[0], singlePointer, nodeGroup, baseMap);
+            produce(pair0[0], pair1[0], singlePointer, nodeGroup, baseMap, useRB);
             //produce(pair0[1], pair1[1], singlePointer, nodeGroup, baseMap);
         }
     }
-    private static void produce(Node p0, Node p1, int pointer, ArrayList<Node> nodeGroup, int[] baseMap){
+    private static void produce(Node p0, Node p1, int pointer, ArrayList<Node> nodeGroup, int[] baseMap, boolean useRB){
         int[] chromosome0 = new int[p0.chromosome.length];
         int[] chromosome1 = new int[p0.chromosome.length];
 
@@ -223,8 +223,8 @@ public class GA{
             chromosome1[i] = p0.chromosome[i];
         }
 
-        nodeGroup.add(new Node(chromosome0, baseMap));
-        nodeGroup.add(new Node(chromosome1, baseMap));
+        nodeGroup.add(new Node(chromosome0, baseMap, useRB));
+        nodeGroup.add(new Node(chromosome1, baseMap, useRB));
     }
     private static Node[] getPair(ArrayList<Node> nodeGroup){
         Random random = new Random();
@@ -244,7 +244,7 @@ public class GA{
 
     private static int maxFitnessInCurrentGeneration = Integer.MIN_VALUE;
     private static int maxFitnessTotal = Integer.MIN_VALUE;
-    public static int fitness(int[] baseMap, int[] chromosome){
+    public static int fitness(int[] baseMap, int[] chromosome, boolean useRB){
 
         int[] map = new int[baseMap.length];
         for(int i=0; i<baseMap.length; i++)
@@ -258,7 +258,8 @@ public class GA{
                 result++;
         }
         
-        result += calculateHoverBackScore(chromosome);
+        int rB = useRB ? calculateHoverBackScore(chromosome) : 1;
+        result *= rB;
 
         return result;
     }
