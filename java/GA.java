@@ -123,6 +123,15 @@ public class GA{
         }
         return result;
     }
+
+    public static int countMoves(int[] chromosome){
+      int result = 0;
+      for(int i=0; i<chromosome.length; i++){
+        if(chromosome[i] >= 0)
+          result++;
+      }
+      return result;
+    }
     /*
     * ------------------------------------------
     * -----mutation-----------------------------
@@ -258,7 +267,8 @@ public class GA{
                 result++;
         }
         
-        int rB = useRB ? calculateHoverBackScore(chromosome) : 1;
+        // int rB = useRB ? calculateHoverBackScore(chromosome) : 1;
+        int rB = useRB ? countMoves(chromosome): 1;
         result *= rB;
 
         return result;
